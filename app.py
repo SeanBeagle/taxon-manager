@@ -143,16 +143,17 @@ class GenBank(BaseModel):
         if r.ok:
             gb = GenBank.read_string(r.text)
             filename = f"{gb.accession}{'.' + config.taxon if config.taxon else ''}.gb"
-            file_out = os.path.join(config.genbank_dir, filename)
+            file_out = os.path.join(FileSystem.dir['genbank'], filename)
             record = GenBank.query.filter_by(version=gb.version).first()
 
-            if record and os.path.exists(record.filepath) :
+            if record and os.path.exists(record.filepath):
                 print(f"[WARN] {file_out} already exists")
             else:
                 with open(file_out, 'w') as fh:
                     fh.write(r.text)
                 GenBank.add_file(filename)
                 print(f"[INFO] Fetched file: {file_out}")
+            return filename
         else:
             print(f"[WARN] Could not download '{id}'")
 
@@ -188,13 +189,24 @@ class Feature(BaseModel):
 
 
 class FileSystem:
-    directory = {}
+    dir = {}
 
     @classmethod
     def build(cls, basedir):
         cls.add_directory('basedir', basedir)
         cls.add_directory('genbank', os.path.join(basedir, 'genbank'))
-        cls.add_directory('test', os.path.join(basedir, 'test'))
+
+    @classmethod
+    def use(cls, basedir):
+        cls.use_directory('basedir', basedir)
+        cls.use_directory('genbank', os.path.join(basedir, 'genbank'))
+
+    @classmethod
+    def use_directory(cls, key, directory):
+        if os.path.isdir(directory):
+            cls.dir[key] = directory
+        else:
+            print(f"[WARN] {directory} does not exist!")
 
     @classmethod
     def add_directory(cls, key, directory):
@@ -202,10 +214,10 @@ class FileSystem:
         try:
             os.makedirs(directory)
             print(f"[INFO] Created directory {directory}")
-            cls.directory[key] = directory
+            cls.dir[key] = directory
         except FileExistsError:
             print(f"[INFO] Directory {directory} already exists")
-            cls.directory[key] = directory
+            cls.dir[key] = directory
         except PermissionError:
             print(f"[WARN] Do not have permission to make {directory}")
 
@@ -226,7 +238,10 @@ def sync_ncbi():
     num_fail = 0
     if r.ok:
         for id in r.json()['esearchresult']['idlist']:
-            GenBank.fetch(id)
+            gb = GenBank.fetch(id)
+            if gb:
+                Isolate.from_genbank(gb)
+
             sleep(1/3)  # LIMIT 3 REQUESTS PER SECOND
     else:
         print(f"[WARN] Error with request: {r.url}")
@@ -240,3 +255,9 @@ def now():
 def init():
     FileSystem.build(config.basedir)
     db.create_all()
+
+
+def update():
+    print("update not created")
+    FileSystem.use(config.basedir)
+    sync_ncbi()

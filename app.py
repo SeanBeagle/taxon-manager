@@ -188,24 +188,24 @@ class Feature(BaseModel):
 
 
 class FileSystem:
-    def __init__(self, basedir):
-        self.directory = {}
-        self.build(basedir)
+    directory = {}
 
-    def build(self, basedir):
-        self.add_directory('basedir', basedir)
-        self.add_directory('genbank', os.path.join(basedir, 'genbank'))
-        self.add_directory('test', os.path.join(basedir, 'test'))
+    @classmethod
+    def build(cls, basedir):
+        cls.add_directory('basedir', basedir)
+        cls.add_directory('genbank', os.path.join(basedir, 'genbank'))
+        cls.add_directory('test', os.path.join(basedir, 'test'))
 
-    def add_directory(self, key, directory):
+    @classmethod
+    def add_directory(cls, key, directory):
         """Add directory to dictionary. Make directory if does not exist"""
         try:
-            os.makedirs(config.basedir)
+            os.makedirs(directory)
             print(f"[INFO] Created directory {directory}")
-            self.directory[key] = directory
+            cls.directory[key] = directory
         except FileExistsError:
             print(f"[INFO] Directory {directory} already exists")
-            self.directory[key] = directory
+            cls.directory[key] = directory
         except PermissionError:
             print(f"[WARN] Do not have permission to make {directory}")
 
@@ -238,7 +238,5 @@ def now():
 
 
 def init():
-    fs = FileSystem(config.basedir)
+    FileSystem.build(config.basedir)
     db.create_all()
-
-filesystem = FileSystem(config.basedir)

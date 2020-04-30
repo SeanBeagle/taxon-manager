@@ -120,8 +120,8 @@ class GenBank(BaseModel):
 
     @classmethod
     def add_file(cls, filepath: str):
+        print("Trying to add genbank file to database...")
         try:
-            print("Trying to add genbank file to database...")
             gb = Bio.GenBank.read(open(filepath))
             record = cls.insert(
                 accession=gb.accession,
@@ -150,6 +150,7 @@ class GenBank(BaseModel):
             else:
                 with open(file_out, 'w') as fh:
                     fh.write(r.text)
+
                 GenBank.add_file(filename)
                 print(f"[INFO] Fetched file: {file_out}")
             return filename
@@ -233,8 +234,6 @@ def sync_ncbi():
         print(f"[WARN] Error with request: {r.url}")
     # IDENTIFY ALL RECORD ID'S AND BEGIN DOWNLOADING GENBANK FILES
     r = eutils.search('nuccore', config.organism, retmax=count)
-    num_pass = 0
-    num_fail = 0
     if r.ok:
         for id in r.json()['esearchresult']['idlist']:
             gb = GenBank.fetch(id)

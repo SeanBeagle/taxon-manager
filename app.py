@@ -121,7 +121,7 @@ class GenBank(BaseModel):
     @classmethod
     def add_file(cls, filepath: str):
         try:
-            assert os.path.isabs(filepath)
+            print("Trying to add genbank file to database...")
             gb = Bio.GenBank.read(open(filepath))
             record = cls.insert(
                 accession=gb.accession,
@@ -131,8 +131,6 @@ class GenBank(BaseModel):
                 downloaded_by=getpass.getuser(),
                 num_features=len(gb.features))
             return record
-        except AssertionError:
-            assert os.path.join(os.getcwd(), filepath)
         except Exception as e:
             print("Error inserting GenBank record" + e)
 

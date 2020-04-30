@@ -156,7 +156,7 @@ class GenBank(BaseModel):
                 GenBank.add_file(file_out)
                 Isolate.from_genbank(file_out)
                 print(f"[INFO] Fetched file: {file_out}")
-            return filename
+            return file_out
         else:
             print(f"[WARN] Could not download '{id}'")
 

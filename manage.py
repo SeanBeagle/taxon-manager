@@ -1,3 +1,5 @@
+#!venv/bin/python
+
 # PYTHON STANDARD LIBRARY
 import argparse
 import os

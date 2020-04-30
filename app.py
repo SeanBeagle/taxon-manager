@@ -71,6 +71,7 @@ class Isolate(BaseModel):
 
         record = cls.insert(
             accession=gb.accession[0],
+            organism=gb.organism,
             date_released=GenBank.format_date(gb.date),
             host=source.get('host'),
             date_collected=source.get('collection_date'),
@@ -93,7 +94,7 @@ class GenBank(BaseModel):
     num_features = db.Column(db.Integer)
 
     def __repr__(self):
-        return f"<GenBank(id={self.id}, version='{self.version}, num_features={self.num_features}')>"
+        return f"<GenBank(id={self.id}, version='{self.version}', num_features='{self.num_features}')>"
 
     @staticmethod
     def read_string(string: str):

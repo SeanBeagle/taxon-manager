@@ -70,7 +70,7 @@ class Isolate(BaseModel):
         source = GenBank.get_source_data(gb)
 
         record = cls.insert(
-            accession=gb.accession,
+            accession=gb.accession[0],
             date_released=GenBank.format_date(gb.date),
             host=source.get('host'),
             date_collected=source.get('collection_date'),
@@ -123,9 +123,9 @@ class GenBank(BaseModel):
         print("Trying to add genbank file to database...")
         try:
             gb = Bio.GenBank.read(open(filepath))
-            print(f"Accession: {gb.accession}")
+            print(f"Accession: {gb.accession[0]}")
             record = cls.insert(
-                accession=gb.accession,
+                accession=gb.accession[0],
                 version=gb.version,
                 filepath=filepath,                  # TODO: is this abspath?
                 date_downloaded=now(),
@@ -142,7 +142,7 @@ class GenBank(BaseModel):
         r = eutils.fetch(db='nuccore', id=id, rettype='gb')
         if r.ok:
             gb = GenBank.read_string(r.text)
-            filename = f"{gb.accession}{'.' + config.taxon if config.taxon else ''}.gb"
+            filename = f"{gb.accession[0]}{'.' + config.taxon if config.taxon else ''}.gb"
             file_out = os.path.join(FileSystem.dir['genbank'], filename)
             record = GenBank.query.filter_by(version=gb.version).first()
 

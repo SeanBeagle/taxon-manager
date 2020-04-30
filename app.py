@@ -132,7 +132,7 @@ class GenBank(BaseModel):
                 num_features=len(gb.features))
             return record
         except Exception as e:
-            print("Error inserting GenBank record" + e)
+            print(f"Error inserting GenBank record: {e}")
 
     @staticmethod
     def fetch(id: str):
@@ -151,7 +151,8 @@ class GenBank(BaseModel):
                 with open(file_out, 'w') as fh:
                     fh.write(r.text)
 
-                GenBank.add_file(filename)
+                GenBank.add_file(file_out)
+                Isolate.from_genbank(file_out)
                 print(f"[INFO] Fetched file: {file_out}")
             return filename
         else:

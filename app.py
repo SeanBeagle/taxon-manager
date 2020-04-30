@@ -20,7 +20,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
-class ModelMixin(db.Model):
+class BaseModel(db.Model):
     __abstract__ = True
 
     @classmethod
@@ -31,7 +31,7 @@ class ModelMixin(db.Model):
         return record
 
 
-class Project(db.Model, ModelMixin):
+class Project(BaseModel):
     """A Project is defined by its organism"""
 
     __tablename__ = 'Project'
@@ -47,7 +47,7 @@ class Project(db.Model, ModelMixin):
         return f"<Project(id={self.id}, organism='{self.organism}')>"
 
 
-class Isolate(db.Model, ModelMixin):
+class Isolate(BaseModel):
     """An Isolate is defined by its NCBI accession"""
 
     __tablename__ = 'Isolate'
@@ -78,7 +78,7 @@ class Isolate(db.Model, ModelMixin):
         return record
 
 
-class GenBank(db.Model, ModelMixin):
+class GenBank(BaseModel):
     """GenBank Files"""
 
     __tablename__ = 'GenBank'
@@ -168,7 +168,7 @@ class GenBank(db.Model, ModelMixin):
             return None
 
 
-class Feature(db.Model, ModelMixin):
+class Feature(BaseModel):
     """Features of a GenBank file"""
 
     __tablename__ = 'Feature'

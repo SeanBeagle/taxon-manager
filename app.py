@@ -175,7 +175,7 @@ class Feature(BaseModel):
     __tablename__ = 'Feature'
 
     id = db.Column(db.Integer, primary_key=True)
-    genbank_id = db.Column(db.Integer)
+    genbank_id = db.Column(db.Integer, db.ForeignKey('GenBank.id'))
     type = db.Column(db.String, nullable=False)
     start = db.Column(db.Integer)
     stop = db.Column(db.Integer)

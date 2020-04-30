@@ -26,6 +26,7 @@ class BaseModel(db.Model):
     @classmethod
     def insert(cls, **kwargs):
         record = cls(**kwargs)
+        print(f"Adding Record {record}")
         db.session.add(record)
         db.session.commit()
         return record
@@ -239,8 +240,7 @@ def sync_ncbi():
     if r.ok:
         for id in r.json()['esearchresult']['idlist']:
             gb = GenBank.fetch(id)
-            if gb:
-                Isolate.from_genbank(gb)
+            Isolate.from_genbank(gb)
 
             sleep(1/3)  # LIMIT 3 REQUESTS PER SECOND
     else:

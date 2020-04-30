@@ -11,17 +11,17 @@ import app
 import eutils
 
 
-def update_genbank(organism):
-    # DETERMINE NUMBER OF RECORDS MATCHING TAXON   
+def update_genbank():
+    # DETERMINE NUMBER OF RECORDS MATCHING organism
     count = 0
-    r = eutils.search('nuccore', organism)
+    r = eutils.search('nuccore', config.organism)
     if r.ok:
         count = r.json()['esearchresult']['count']
-        print(f"[INFO] Found {count} organisms that match {organism}")
+        print(f"[INFO] Found {count} organisms that match {config.organism}")
     else:
         print(f"[WARN] Error with request: {r.url}")
     # IDENTIFY ALL RECORD ID'S AND BEGIN DOWNLOADING GENBANK FILES
-    r = eutils.search('nuccore', organism, retmax=count)
+    r = eutils.search('nuccore', config.organism, retmax=count)
     num_pass = 0
     num_fail = 0
     if r.ok:
@@ -50,23 +50,23 @@ def fetch_gb(id, taxon=None):
 
 def update():
     print("[INFO] Updating files from NCBI")
-    update_genbank(config.organism)
+    update_genbank()
 
 
 def init():
     print("[INFO] Initializing project")
-    app.build_filesystem()
-    app.build_database()
+    app.init()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    options = parser.add_mutually_exclusive_group(required=True)
-    options.add_argument('--init', action='store_true')
-    options.add_argument('--update', action='store_true')
+    parser.add_argument('action', options=['init', 'update'])
+    # options = parser.add_mutually_exclusive_group(required=True)
+    # options.add_argument('--init', action='store_true')
+    # options.add_argument('--update', action='store_true')
     args = parser.parse_args()
-    if args.init:
+    if args.action == 'init':
         init()
-    elif args.update:
+    elif args.action == 'update':
         update()
 

@@ -50,25 +50,12 @@ def fetch_gb(id, taxon=None):
         print(f"[WARN] Could not download '{id}'")
 
 
-def update():
-    print("[INFO] Updating files from NCBI")
-    update_genbank()
-
-
-def init():
-    print("[INFO] Initializing project")
-    app.init()
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('action', choices=['init', 'update'])
-    # options = parser.add_mutually_exclusive_group(required=True)
-    # options.add_argument('--init', action='store_true')
-    # options.add_argument('--update', action='store_true')
     args = parser.parse_args()
     if args.action == 'init':
-        init()
+        app.init()
     elif args.action == 'update':
-        update()
+        app.update()
 

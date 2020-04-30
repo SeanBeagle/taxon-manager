@@ -152,9 +152,7 @@ class GenBank(BaseModel):
             else:
                 with open(file_out, 'w') as fh:
                     fh.write(r.text)
-
                 GenBank.add_file(file_out)
-                Isolate.from_genbank(file_out)
                 print(f"[INFO] Fetched file: {file_out}")
             return file_out
         else:
@@ -241,7 +239,6 @@ def sync_ncbi():
         for id in r.json()['esearchresult']['idlist']:
             gb = GenBank.fetch(id)
             Isolate.from_genbank(gb)
-
             sleep(1/3)  # LIMIT 3 REQUESTS PER SECOND
     else:
         print(f"[WARN] Error with request: {r.url}")
@@ -249,7 +246,7 @@ def sync_ncbi():
 
 def now():
     """Store datetime.now() as iso formatted string"""
-    return datetime.now().strftime('%Y-%m-%d, %H:%M:%S"')
+    return datetime.now().strftime('%Y-%m-%d, %H:%M:%S')
 
 
 def init():

@@ -123,6 +123,7 @@ class GenBank(BaseModel):
         print("Trying to add genbank file to database...")
         try:
             gb = Bio.GenBank.read(open(filepath))
+            print(f"Accession: {gb.accession}")
             record = cls.insert(
                 accession=gb.accession,
                 version=gb.version,
@@ -256,6 +257,5 @@ def init():
 
 
 def update():
-    print("update not created")
     FileSystem.use(config.basedir)
     sync_ncbi()

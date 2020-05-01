@@ -5,13 +5,13 @@ Written in Python using the Flask and SQLAlachemy frameworks.
 
 ## TABLE OF CONTENTS
 - [UML DIAGRAMS](#uml-diagrams)
-  - [Use Case](#use-case-uml)
+  - [High Level Design](#high-level-design)
   - [Classes](#class-uml)
 
 
 ## UML Diagrams
 ### Use Case UML
-![Use Case UML](UML_UseCase.png)
+![High Level Design](UML_UseCase.png)
 ### Class UML
 ![Class UML](UML_Class.png)
 

@@ -18,6 +18,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = config.database
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+logging.basicConfig(filename=f'{os.path.join(config.basedir, config.taxon)}.log', level=logging.DEBUG)
 
 
 class BaseModel(db.Model):
@@ -25,11 +26,14 @@ class BaseModel(db.Model):
 
     @classmethod
     def insert(cls, **kwargs):
-        record = cls(**kwargs)
-        print(f"Adding Record {record}")
-        db.session.add(record)
-        db.session.commit()
-        return record
+        try:
+            record = cls(**kwargs)
+            db.session.add(record)
+            db.session.commit()
+            logging.info(f"Inserted {record} into {cls.__name__}")
+            return record
+        except Exception as e:
+            logging.warning(f"Error inserting record into {cls.__name__}: {e}")
 
 
 class Project(BaseModel):
@@ -45,7 +49,7 @@ class Project(BaseModel):
     basedir = db.Column(db.String)
 
     def __repr__(self):
-        return f"<Project(id={self.id}, organism='{self.organism}')>"
+        return self.organism
 
 
 class Isolate(BaseModel):
@@ -62,22 +66,23 @@ class Isolate(BaseModel):
     host = db.Column(db.String)
 
     def __repr__(self):
-        return f"<Isolate(accession='{self.accession}', organism='{self.organism}')>"
+        return self.accession
 
     @classmethod
     def from_genbank(cls, filepath: str):
-        gb = Bio.GenBank.read(open(filepath))
-        source = GenBank.get_source_data(gb)
-
-        record = cls.insert(
-            accession=gb.accession[0],
-            organism=gb.organism,
-            date_released=GenBank.format_date(gb.date),
-            host=source.get('host'),
-            date_collected=source.get('collection_date'),
-            country=source.get('country'),
-        )
-        return record
+        try:
+            gb = GenBank.read(file=filepath)
+            source = GenBank.get_source_data(gb)
+            return cls.insert(
+                accession=gb.accession[0],
+                organism=gb.organism,
+                date_released=GenBank.format_date(gb.date),
+                host=source.get('host'),
+                date_collected=source.get('collection_date'),
+                country=source.get('country'),
+            )
+        except Exception as e:
+            logging.warning(f"Error inserting {filepath} to {cls.__name__}: {e}")
 
 
 class GenBank(BaseModel):
@@ -92,19 +97,34 @@ class GenBank(BaseModel):
     date_downloaded = db.Column(db.String)
     downloaded_by = db.Column(db.String)
     num_features = db.Column(db.Integer)
+    length = db.Column(db.Integer)
 
     def __repr__(self):
-        return f"<GenBank(id={self.id}, version='{self.version}', num_features='{self.num_features}')>"
+        return self.filepath
 
-    @staticmethod
-    def read_string(string: str):
-        try:
-            return Bio.GenBank.read(StringIO(string))
-        except ValueError:
-            print("[WARN] No Records Found in GenBank string")
+    @classmethod
+    def read(cls, **kwargs):
+        """Return Bio.GenBank object from string or file
+        TODO(seanbeagle): Return dictionary of genbank data instead of Bio.GenBank object
+        """
+        if kwargs.get('file'):
+            try:
+                return Bio.GenBank.read(open(kwargs.get('file')))
+            except Exception as e:
+                logging.warning(f"Problem reading: {e}")
+        elif kwargs.get('string'):
+            try:
+                return Bio.GenBank.read(StringIO(kwargs.get('string')))
+            except Exception as e:
+                logging.warning(f"Problem reading: {e}")
+        else:
+            logging.debug(f"{cls.__name__}.read() requires keyword argument: file or string")
 
     @staticmethod
     def get_source_data(gb: Bio.GenBank):
+        """Return source data from Bio.GenBank object
+        TODO(seanbeagle): Move this functionality to the read() method
+        """
         try:
             assert gb.features[0].key == 'source', 'source information not found'
             source = gb.features[0]
@@ -117,38 +137,46 @@ class GenBank(BaseModel):
                 data[key] = value
             return data
         except AssertionError as e:
-            print(f"[WARN] {e}")
+            logging.warning(f"{e}")
+
+    @staticmethod
+    def to_dict(gb: Bio.GenBank):
+        # TODO(seanbeagle): Return fields from Bio.GenBank object as dictionary
+        logging.debug("to_dict() method currently has no function")
 
     @classmethod
     def add_file(cls, filepath: str):
-        print("Trying to add genbank file to database...")
+        """TODO(seanbeagle): Create scraping tool for genbank data similar to get_source_data()"""
         try:
-            gb = Bio.GenBank.read(open(filepath))
-            print(f"Accession: {gb.accession[0]}")
+            gb = GenBank.read(file=filepath)
+            accession = gb.accession[0]
+            logging.debug(f"Adding {accession} to {cls}...")
             record = cls.insert(
-                accession=gb.accession[0],
+                accession=accession,
                 version=gb.version,
-                filepath=filepath,                  # TODO: is this abspath?
+                filepath=filepath,                  # TODO: Ensure this is absolute filepath
                 date_downloaded=now(),
                 downloaded_by=getpass.getuser(),
-                num_features=len(gb.features))
+                num_features=len(gb.features),
+                length=len(gb))
             return record
         except Exception as e:
-            print(f"Error inserting GenBank record: {e}")
+            logging.debug(f"Could not insert GenBank record: {e}")
 
     @staticmethod
     def fetch(id: str):
-        print(f"[INFO] Fetching GenBank id: {id}")
+        logging.info(f"Fetching GenBank id={id}")
 
         r = eutils.fetch(db='nuccore', id=id, rettype='gb')
         if r.ok:
-            gb = GenBank.read_string(r.text)
-            filename = f"{gb.accession[0]}{'.' + config.taxon if config.taxon else ''}.gb"
+            gb = GenBank.read(string=r.text)
+            accession = gb.accession[0]
+            filename = f"{accession}{'.' + config.taxon if config.taxon else ''}.gb"
             file_out = os.path.join(FileSystem.dir['genbank'], filename)
             record = GenBank.query.filter_by(version=gb.version).first()
 
             if record and os.path.exists(record.filepath):
-                print(f"[WARN] {file_out} already exists")
+                logging.info(f"{accession} already exists as file='{record.filepath}' and GenBank.id={record.id}")
             else:
                 with open(file_out, 'w') as fh:
                     fh.write(r.text)
@@ -230,9 +258,9 @@ def sync_ncbi():
     r = eutils.search('nuccore', config.organism)
     if r.ok:
         count = r.json()['esearchresult']['count']
-        print(f"[INFO] Found {count} organisms that match {config.organism}")
+        logging.info(f"{count} organisms match {config.organism}")
     else:
-        print(f"[WARN] Error with request: {r.url}")
+        logging.warning(f"Error with HTTP request: {r.url}")
     # IDENTIFY ALL RECORD ID'S AND BEGIN DOWNLOADING GENBANK FILES
     r = eutils.search('nuccore', config.organism, retmax=count)
     if r.ok:
@@ -241,7 +269,7 @@ def sync_ncbi():
             Isolate.from_genbank(gb)
             sleep(1/3)  # LIMIT 3 REQUESTS PER SECOND
     else:
-        print(f"[WARN] Error with request: {r.url}")
+        logging.warning(f"ERROR: {r.status_code} for {r.request.method} Request: {r.url}")
 
 
 def now():
